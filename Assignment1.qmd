@@ -1,0 +1,57 @@
+---
+title: "722 - Assignment 1"
+format: html
+editor: visual
+---
+
+
+```{r}
+library("tidyverse")
+
+read.vcf <- function(file, special.char="##", ...) {
+  search.term=paste0(special.char, ".*")
+  all.lines=readLines(file)
+  clean.lines=gsub(search.term, "",  all.lines)
+  clean.lines=gsub("#CHROM", "CHROM", clean.lines)
+  read.table(..., text=paste(clean.lines, collapse="\n"))
+}
+
+```
+
+```{r}
+
+snm <- read.vcf("snm.vcf",header=TRUE, stringsAsFactors=FALSE)
+
+results <- data.frame(Start=min(snm$POS), End=max(snm$POS), SNPs=0)
+
+for (i in 1:nrow(results)) { 
+  d=subset(snm, (snm$POS>=results$Start[i] & snm$POS<=results$End[i]))  # Get the subset of data within the window
+  results$SNPs[i] <- nrow(d) # Count the number of SNPs in the window, add to results table
+}
+
+
+
+num.samples <- ncol(snm)-9
+results$Nchr <- 2*(num.samples)
+
+ WT_funtion <- function(S,n){
+   harm_num <- sum(1/ 1:(n-1))
+   watt_theta <- S / harm_num
+  return(watt_theta)
+ }
+
+WT_funtion(S = results$SNPs, n = results$Nchr)
+
+results$Watt_Theta <- WT_funtion(S = results$SNPs, n = results$Nchr)
+
+
+results$Pi=rep(0, nrow(results))  # an empty column of zeros to collect the the incoming Pi values
+for (i in 1:nrow(results)) { # loop for every WINDOW
+  d=subset(snm, (snm$POS>=results$Start[i] & snm$POS<=results$End[i])) 
+  j <- subset()
+}
+
+
+
+```
+
