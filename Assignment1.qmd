@@ -48,13 +48,6 @@ results$Watt_Theta <- WT_funtion(S = results$SNPs, n = results$Nchr)
 
 results$Pi=rep(0, nrow(results))  # an empty column of zeros to collect the the incoming Pi values
 
-
-### fix me
-
-d4 <- as.data.frame(d)
-
-d4
-
 # n = #of chromosomes we have available
 # count # of 1s and divide that by the 20(# of chromosomes)
 
@@ -84,8 +77,7 @@ p <- (total_one)/20
 
 q <- (total_zero)/20
 
-tester <- apply(d3, 2, sum)
-
+#getting pi for each row
 
 pi <- 2*p*q
 pi <- sum(pi)
@@ -116,11 +108,14 @@ variance.d <- function(n,S) {
 
 var <- variance.d(20, 1335)
 
-
-results$TajimasD <- (results$Pi - results$Watt_Theta)/sqrt(var)
-
 #Empty vector for Tajima's D values
 results$TajimasD = rep(0, nrow(results))
+
+#filling empty vector
+results$TajimasD <- ((results$Pi - results$Watt_Theta)/sqrt(var))
+
+# plot results
+plot(results$Start, results$TajimasD, pch=20,xlab="Position", ylab="Tajima's D", type="l", ylim=c(-3,1))
 
 ```
 
@@ -128,11 +123,58 @@ results$TajimasD = rep(0, nrow(results))
 Personal Analysis (steps 6+)
 
 ```{r}
+#1:113639554-113680519
+
+stu <- read.vcf("1.113639554-113680519.ALL.chr1_GRCh38.genotypes.20170504.vcf.gz", header = TRUE, stringsAsFactors=FALSE)
+
+dim(stu)  
+str(stu) 
+
+windows <- seq(min(stu$POS), max(stu$POS), by=5000)
+stu_results <- data.frame(Start=windows, End=(windows+5000), SNPs=rep(0, length(windows))) 
 
 
-stu <- read.vcf("14.26060806-26135993.ALL.chr1_GRCh38.genotypes.20170504.vcf.gz", header = TRUE, stringsAsFactors=FALSE)
+#measuring SNPs for each window
+for (i in 1:nrow(stu_results)) {
+  q=subset(stu, (stu$POS>=stu_results$Start[i] & stu$POS<=stu_results$End[i])) 
+  stu_results$SNPs[i] <- nrow(q) 
+}
+
+#getting the number of chromosomes
+num.samples <- ncol(stu)-9
+stu_results$Nchr <- 2*(num.samples)
+
+#Calculating Watson theta
+ WT_funtion <- function(S,n){
+   harm_num <- sum(1/ 1:(n-1))
+   watt_theta <- S / harm_num
+  return(watt_theta)
+ }
+
+WT_funtion(S = stu_results$SNPs, n = stu_results$Nchr)
+
+stu_results$Watt_Theta <- WT_funtion(S = stu_results$SNPs, n = stu_results$Nchr)
+
+# creating a vector to hold the future pi values
+stu_results$Pi=rep(0, nrow(stu_results))  # an empty column of zeros to collect the the incoming Pi values
+
+for (i in 1:nrow(stu_results)) { # loop for every WINDOW
+  q=subset(stu, (stu$POS>=stu_results$Start[i] & stu$POS<=stu_results$End[i]))
+  
+  shom0 <- rowSums(q == "0|0", na.rm = TRUE)
+  shet1<- rowSums(q == "1|0", na.rm = TRUE)
+  shom1 <- rowSums(q == "1|1", na.rm = TRUE)
+  shet0 <- rowSums(q == "0|1", na.rm = TRUE)
+  
+   pi[i] <- sum(!is.na(stu[i, ]))
+
+  
+}
+
+q1 <- as.data.frame(q[ ,10:50])
 
 
+rowsum <- apply(q1, 1, sum)
 
 ```
 

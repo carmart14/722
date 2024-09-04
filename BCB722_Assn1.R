@@ -43,8 +43,8 @@ results <- data.frame(Start=min(data$POS), End=max(data$POS), SNPs=0)  # make a 
 
 ## *UNCOMMENT AND USE THESE for your analysis of the 1000 genomes data
 
-#windows <- seq(min(data$POS), max(data$POS), by=5000)  # get window start positions *USE THIS ONE for your analysis of the 1000 genomes data
-#results <- data.frame(Start=windows, End=(windows+5000), SNPs=rep(0, length(windows)))  # Get Window End positions by adding 5000 to every Start position
+windows <- seq(min(data$POS), max(data$POS), by=5000)  # get window start positions *USE THIS ONE for your analysis of the 1000 genomes data
+results <- data.frame(Start=windows, End=(windows+5000), SNPs=rep(0, length(windows)))  # Get Window End positions by adding 5000 to every Start position
 ## start with 0s in the SNP column, which will be replaced with the SNP counts you generate next
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
