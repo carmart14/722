@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+*.gz
+*chr14
+*lformat
