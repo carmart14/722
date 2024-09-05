@@ -136,7 +136,7 @@ Personal Analysis (steps 6+)
 ```{r}
 #1:113639554-113680519
 
-stu <- read.vcf("1.113639554-113680519.ALL.chr1_GRCh38.genotypes.20170504.vcf.gz", header = TRUE, stringsAsFactors=FALSE)
+stu <- read.vcf("1.113639554-113680519.ALL.chr1_GRCh38.genotypes.20170504.vcf", header = TRUE, stringsAsFactors=FALSE)
 
 dim(stu)  
 str(stu) 
@@ -171,20 +171,83 @@ stu_results$Pi=rep(0, nrow(stu_results))  # an empty column of zeros to collect 
 
 for (i in 1:nrow(stu_results)) { # loop for every WINDOW
   q=subset(stu, (stu$POS>=stu_results$Start[i] & stu$POS<=stu_results$End[i]))
-  
+  #testpi <- 2*p[i]*q[i]
+  #testpi <- sum(testpi)
+  #testpi <- testpi*s_correction
+  #return(testpi)
 }
 
 
 q1 <- as.data.frame(q[ ,10:50])
 
 
-shom0 <- rowSums(q == "0|0", na.rm = TRUE)
-shet1<- rowSums(q == "1|0", na.rm = TRUE)
-shom1 <- rowSums(q == "1|1", na.rm = TRUE)
-shet0 <- rowSums(q == "0|1", na.rm = TRUE)
+shom0 <- rowSums(q1 == "0|0", na.rm = TRUE)
+shet1<- rowSums(q1 == "1|0", na.rm = TRUE)
+shom1 <- rowSums(q1 == "1|1", na.rm = TRUE)
+shet0 <- rowSums(q1 == "0|1", na.rm = TRUE)
+
+#taking those genotypes and making them into tibbles
+sone_zero <- as_tibble(shet1)
+szero_one <- as_tibble(shet0)
+sone_one <- as_tibble(shom1)
+szero_zero <- as_tibble(shom0)
+
+# taking those tibbles and making it into a data frame for easier data manipulation
+q2 <- as.data.frame(c(szero_one, sone_one, sone_zero, szero_zero))
+q2 <- setNames(d3, c("shet0","shom1","shet1","shom0"))
+
+#summation of genotypes
+qtotal_one <- 2*shom1+(shet0+shet1)
+qtotal_zero <- 2*shom0 +(shet0+shet1)
 
 
+# GOAL find the sum of ps and q for each row. then find the pi value for each row. then sum up all the pis. then do the correction analysis. 
 
-rowsum <- apply(q1, 1, sum)
+# taking the average of genotype over the amount of chromosomes
+p2 <- (qtotal_one)/204
+
+q2 <- (qtotal_zero)/204
+
+#getting pi for each row
+stu_pi <- 2*p2*q2
+stu_pi <- sum(stu_pi)
+
+# correction coefficient
+schr <- stu_results$Nchr
+s_correction <- schr/(schr-1)
+ 
+# accurate pi values 
+stu_pi <- stu_pi*s_correction
+
+# put the pi values into the results table
+stu_results$Pi <- stu_pi
+
+
+# finding taj D
+
+variance.d <- function(n,S) {
+  a1=sum(1/(seq(from=1, to=(n-1), by=1)))
+  a2=sum(1/((seq(from=1, to=(n-1), by=1))**2))
+  b1=(n+1)/(3*(n-1))
+  b2=(2*((n**2)+n+3))/((9*n)*(n-1))
+  c1=b1 - (1/a1)
+  c2=b2-((n+2)/(a1*n)) + (a2/(a1**2))
+  e1=c1/a1
+  e2=c2/((a1**2)+a2)
+  var=(e1*S) + (e2*S*(S-1))
+  return(var)
+} #End function
+
+svar <- variance.d(27, 82)
+
+#Empty vector for Tajima's D values
+stu_results$TajimasD = rep(0, nrow(stu_results))
+
+#filling empty vector
+stu_results$TajimasD <- ((stu_results$Pi - stu_results$Watt_Theta)/sqrt(svar))
+
+# plot results
+plot(stu_results$Start, stu_results$TajimasD, pch=20,xlab="Position", ylab="Tajima's D", type="l", ylim=c(-4,1))
+
 
 ```
