@@ -8,6 +8,7 @@ editor: visual
 library("tidyverse")
 #install.packages("vcfR")
 library("vcfR")
+library("ggplot2")
 
 read.vcf <- function(file, special.char="##", ...) {
   search.term=paste0(special.char, ".*")
@@ -234,18 +235,23 @@ stu_results$TajimasD = rep(0, nrow(stu_results))
 stu_results$TajimasD <- ((stu_results$Pi - stu_results$Watt_Theta)/sqrt(svar))
 
 # plot results
-plot(stu_results$Start, stu_results$TajimasD, pch=20,xlab="Position", ylab="Tajima's D", type="l", ylim=c(-4,1))
+# Base R plot
+plot(stu_results$Start, stu_results$TajimasD, pch=20, xlab="Position", ylab="Tajima's D", type="l", ylim=c(-4,1))
+
+# Adding a rectangle
+rect(xleft = 113639554, xright = 113844554, ybottom = -4, ytop = -0.7, col = rgb(1, 0, 0, alpha = 0.2), border = NA)
+
+  
 
 
 ```
 
 Questions:
 
-a.I picked the 1:113639554-113680519 region of the human genome. I don't have a specific reason, just tried a bunch of different regions and this one gave me results so I kept with this location. 
+a.I picked the 1:113639554-113680519 region of the human genome. I don't have a specific reason, just tried a bunch of different regions and this one gave me results so I kept with this location.
 
-b. STU (Sri Lankan Tami in the UK), and I chose this location because I really liked the acronym.  FIX ME 
+b.  STU (Sri Lankan Tami in the UK), and I chose this location because I really liked the acronym. I couldn't find other sections that had the different snps, but I did talk to other people in the class to see how their results differed. They had SNPs with a higher pi value and more of a diverse Taj D values overall. This tells me that there is a possibly the area I have is having a more positive selection than they had and/or more rare in general but this population is more generally rare so the diversity isn't wild but the Taj D is low. 
 
-c. Changing the window size allows for more comparative analysis and changing how we can sample the data in the personal analysis. The example data had one window so our result was just the one row while the new one had many changes and we can subset and examine all of those changes. 
+c.  Changing the window size allows for more comparative analysis and changing how we can sample the data in the personal analysis. The example data had one window so our result was just the one row while the new one had many changes and we can subset and examine all of those changes.
 
 d.This region is a protein coding gene, so depending on what the protein is encoding for, I'd assume very little variation within a population for these samples. But when we take a closer look, the Taj d value are all negative too; meaning an excessive level of common changes. this could be a sign of positive selection happening in this population.
-
