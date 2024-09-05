@@ -21,10 +21,13 @@ read.vcf <- function(file, special.char="##", ...) {
 
 ```{r}
 
+#read in the vcf file
 snm <- read.vcf("snm.vcf",header=TRUE, stringsAsFactors=FALSE)
 
+#creation of result statement
 results <- data.frame(Start=min(snm$POS), End=max(snm$POS), SNPs=0)
 
+#looping through the number of results to get a subset of the data
 for (i in 1:nrow(results)) { 
   d=subset(snm, (snm$POS>=results$Start[i] & snm$POS<=results$End[i]))  # Get the subset of data within the window
   results$SNPs[i] <- nrow(d) # Count the number of SNPs in the window, add to results table
@@ -35,6 +38,8 @@ for (i in 1:nrow(results)) {
 num.samples <- ncol(snm)-9
 results$Nchr <- 2*(num.samples)
 
+# creation of the watersons theta
+
  WT_funtion <- function(S,n){
    harm_num <- sum(1/ 1:(n-1))
    watt_theta <- S / harm_num
@@ -43,6 +48,7 @@ results$Nchr <- 2*(num.samples)
 
 WT_funtion(S = results$SNPs, n = results$Nchr)
 
+#placing the result of the Wt funtion into the results table
 results$Watt_Theta <- WT_funtion(S = results$SNPs, n = results$Nchr)
 
 
@@ -51,43 +57,49 @@ results$Pi=rep(0, nrow(results))  # an empty column of zeros to collect the the 
 # n = #of chromosomes we have available
 # count # of 1s and divide that by the 20(# of chromosomes)
 
-d <- d[10:19]
 
+d <- d[10:19] #sub-setting the d matrix to exclude the metadata
+
+#sum of the rows to create genotypes
 hom0 <- rowSums(d == "0|0", na.rm = TRUE)
 het1<- rowSums(d == "1|0", na.rm = TRUE)
 hom1 <- rowSums(d == "1|1", na.rm = TRUE)
 het0 <- rowSums(d == "0|1", na.rm = TRUE)
 
+#taking those genotypes and making them into tibles
 one_zero <- as_tibble(het1)
 zero_one <- as_tibble(het0)
 one_one <- as_tibble(hom1)
 zero_zero <- as_tibble(hom0)
 
-
+# taking those tibbles and making it into a data frame for easier data manipulation
 d3 <- as.data.frame(c(zero_one, one_one, one_zero, zero_zero))
 d3 <- setNames(d3, c("het0","hom1","het1","hom0"))
 
+#summation of genotypes
 total_one <- 2*hom1+(het0+het1)
 total_zero <- 2*hom0 +(het0+het1)
 
 
-# find the sum of ps and q for each row. then find the pi value for each row. then sum up all the pis. then do the correction analysis. 
+# GOAL find the sum of ps and q for each row. then find the pi value for each row. then sum up all the pis. then do the correction analysis. 
 
+# taking the average of genotype over the amount of chromosomes
 p <- (total_one)/20
 
 q <- (total_zero)/20
 
 #getting pi for each row
-
 pi <- 2*p*q
 pi <- sum(pi)
 
+# correction coefficient
 chr <- results$Nchr
 correction <- chr/(chr-1)
  
-
+# accurate pi values 
 pi <- pi*correction
 
+# put the pi values into the results table
 results$Pi <- pi
 
 
@@ -118,7 +130,6 @@ results$TajimasD <- ((results$Pi - results$Watt_Theta)/sqrt(var))
 plot(results$Start, results$TajimasD, pch=20,xlab="Position", ylab="Tajima's D", type="l", ylim=c(-3,1))
 
 ```
-
 
 Personal Analysis (steps 6+)
 
@@ -161,20 +172,19 @@ stu_results$Pi=rep(0, nrow(stu_results))  # an empty column of zeros to collect 
 for (i in 1:nrow(stu_results)) { # loop for every WINDOW
   q=subset(stu, (stu$POS>=stu_results$Start[i] & stu$POS<=stu_results$End[i]))
   
-  shom0 <- rowSums(q == "0|0", na.rm = TRUE)
-  shet1<- rowSums(q == "1|0", na.rm = TRUE)
-  shom1 <- rowSums(q == "1|1", na.rm = TRUE)
-  shet0 <- rowSums(q == "0|1", na.rm = TRUE)
-  
-   pi[i] <- sum(!is.na(stu[i, ]))
-
-  
 }
 
+
 q1 <- as.data.frame(q[ ,10:50])
+
+
+shom0 <- rowSums(q == "0|0", na.rm = TRUE)
+shet1<- rowSums(q == "1|0", na.rm = TRUE)
+shom1 <- rowSums(q == "1|1", na.rm = TRUE)
+shet0 <- rowSums(q == "0|1", na.rm = TRUE)
+
 
 
 rowsum <- apply(q1, 1, sum)
 
 ```
-
