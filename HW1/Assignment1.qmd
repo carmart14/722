@@ -1,0 +1,251 @@
+---
+title: "722 - Assignment 1"
+format: html
+editor: visual
+---
+
+```{r}
+library("tidyverse")
+#install.packages("vcfR")
+library("vcfR")
+
+read.vcf <- function(file, special.char="##", ...) {
+  search.term=paste0(special.char, ".*")
+  all.lines=readLines(file)
+  clean.lines=gsub(search.term, "",  all.lines)
+  clean.lines=gsub("#CHROM", "CHROM", clean.lines)
+  read.table(..., text=paste(clean.lines, collapse="\n"))
+}
+
+```
+
+```{r}
+
+#read in the vcf file
+snm <- read.vcf("snm.vcf",header=TRUE, stringsAsFactors=FALSE)
+
+#creation of result statement
+results <- data.frame(Start=min(snm$POS), End=max(snm$POS), SNPs=0)
+
+#looping through the number of results to get a subset of the data
+for (i in 1:nrow(results)) { 
+  d=subset(snm, (snm$POS>=results$Start[i] & snm$POS<=results$End[i]))  # Get the subset of data within the window
+  results$SNPs[i] <- nrow(d) # Count the number of SNPs in the window, add to results table
+}
+
+
+
+num.samples <- ncol(snm)-9
+results$Nchr <- 2*(num.samples)
+
+# creation of the watersons theta
+
+ WT_funtion <- function(S,n){
+   harm_num <- sum(1/ 1:(n-1))
+   watt_theta <- S / harm_num
+  return(watt_theta)
+ }
+
+WT_funtion(S = results$SNPs, n = results$Nchr)
+
+#placing the result of the Wt funtion into the results table
+results$Watt_Theta <- WT_funtion(S = results$SNPs, n = results$Nchr)
+
+
+results$Pi=rep(0, nrow(results))  # an empty column of zeros to collect the the incoming Pi values
+
+# n = #of chromosomes we have available
+# count # of 1s and divide that by the 20(# of chromosomes)
+
+
+d <- d[10:19] #sub-setting the d matrix to exclude the metadata
+
+#sum of the rows to create genotypes
+hom0 <- rowSums(d == "0|0", na.rm = TRUE)
+het1<- rowSums(d == "1|0", na.rm = TRUE)
+hom1 <- rowSums(d == "1|1", na.rm = TRUE)
+het0 <- rowSums(d == "0|1", na.rm = TRUE)
+
+#taking those genotypes and making them into tibles
+one_zero <- as_tibble(het1)
+zero_one <- as_tibble(het0)
+one_one <- as_tibble(hom1)
+zero_zero <- as_tibble(hom0)
+
+# taking those tibbles and making it into a data frame for easier data manipulation
+d3 <- as.data.frame(c(zero_one, one_one, one_zero, zero_zero))
+d3 <- setNames(d3, c("het0","hom1","het1","hom0"))
+
+#summation of genotypes
+total_one <- 2*hom1+(het0+het1)
+total_zero <- 2*hom0 +(het0+het1)
+
+
+# GOAL find the sum of ps and q for each row. then find the pi value for each row. then sum up all the pis. then do the correction analysis. 
+
+# taking the average of genotype over the amount of chromosomes
+p <- (total_one)/20
+
+q <- (total_zero)/20
+
+#getting pi for each row
+pi <- 2*p*q
+pi <- sum(pi)
+
+# correction coefficient
+chr <- results$Nchr
+correction <- chr/(chr-1)
+ 
+# accurate pi values 
+pi <- pi*correction
+
+# put the pi values into the results table
+results$Pi <- pi
+
+
+# finding taj D
+
+variance.d <- function(n,S) {
+  a1=sum(1/(seq(from=1, to=(n-1), by=1)))
+  a2=sum(1/((seq(from=1, to=(n-1), by=1))**2))
+  b1=(n+1)/(3*(n-1))
+  b2=(2*((n**2)+n+3))/((9*n)*(n-1))
+  c1=b1 - (1/a1)
+  c2=b2-((n+2)/(a1*n)) + (a2/(a1**2))
+  e1=c1/a1
+  e2=c2/((a1**2)+a2)
+  var=(e1*S) + (e2*S*(S-1))
+  return(var)
+} #End function
+
+var <- variance.d(20, 1335)
+
+#Empty vector for Tajima's D values
+results$TajimasD = rep(0, nrow(results))
+
+#filling empty vector
+results$TajimasD <- ((results$Pi - results$Watt_Theta)/sqrt(var))
+
+# plot results
+plot(results$Start, results$TajimasD, pch=20,xlab="Position", ylab="Tajima's D", type="l", ylim=c(-3,1))
+
+```
+
+Personal Analysis (steps 6+)
+
+```{r}
+#1:113639554-113680519
+
+stu <- read.vcf("1.113639554-113680519.ALL.chr1_GRCh38.genotypes.20170504.vcf", header = TRUE, stringsAsFactors=FALSE)
+
+dim(stu)  
+str(stu) 
+
+windows <- seq(min(stu$POS), max(stu$POS), by=5000)
+stu_results <- data.frame(Start=windows, End=(windows+5000), SNPs=rep(0, length(windows))) 
+
+
+#measuring SNPs for each window
+for (i in 1:nrow(stu_results)) {
+  q=subset(stu, (stu$POS>=stu_results$Start[i] & stu$POS<=stu_results$End[i])) 
+  stu_results$SNPs[i] <- nrow(q) 
+}
+
+#getting the number of chromosomes
+num.samples <- ncol(stu)-9
+stu_results$Nchr <- 2*(num.samples)
+
+#Calculating Watson theta
+ WT_funtion <- function(S,n){
+   harm_num <- sum(1/ 1:(n-1))
+   watt_theta <- S / harm_num
+  return(watt_theta)
+ }
+
+WT_funtion(S = stu_results$SNPs, n = stu_results$Nchr)
+
+stu_results$Watt_Theta <- WT_funtion(S = stu_results$SNPs, n = stu_results$Nchr)
+
+# creating a vector to hold the future pi values
+stu_results$Pi=rep(0, nrow(stu_results))  # an empty column of zeros to collect the the incoming Pi values
+
+for (i in 1:nrow(stu_results)) { # loop for every WINDOW
+  q=subset(stu, (stu$POS>=stu_results$Start[i] & stu$POS<=stu_results$End[i]))
+  #testpi <- 2*p[i]*q[i]
+  #testpi <- sum(testpi)
+  #testpi <- testpi*s_correction
+  #return(testpi)
+}
+
+
+q1 <- as.data.frame(q[ ,10:50])
+
+
+shom0 <- rowSums(q1 == "0|0", na.rm = TRUE)
+shet1<- rowSums(q1 == "1|0", na.rm = TRUE)
+shom1 <- rowSums(q1 == "1|1", na.rm = TRUE)
+shet0 <- rowSums(q1 == "0|1", na.rm = TRUE)
+
+#taking those genotypes and making them into tibbles
+sone_zero <- as_tibble(shet1)
+szero_one <- as_tibble(shet0)
+sone_one <- as_tibble(shom1)
+szero_zero <- as_tibble(shom0)
+
+# taking those tibbles and making it into a data frame for easier data manipulation
+q2 <- as.data.frame(c(szero_one, sone_one, sone_zero, szero_zero))
+q2 <- setNames(d3, c("shet0","shom1","shet1","shom0"))
+
+#summation of genotypes
+qtotal_one <- 2*shom1+(shet0+shet1)
+qtotal_zero <- 2*shom0 +(shet0+shet1)
+
+
+# GOAL find the sum of ps and q for each row. then find the pi value for each row. then sum up all the pis. then do the correction analysis. 
+
+# taking the average of genotype over the amount of chromosomes
+p2 <- (qtotal_one)/204
+
+q2 <- (qtotal_zero)/204
+
+#getting pi for each row
+stu_pi <- 2*p2*q2
+stu_pi <- sum(stu_pi)
+
+# correction coefficient
+schr <- stu_results$Nchr
+s_correction <- schr/(schr-1)
+ 
+# accurate pi values 
+stu_pi <- stu_pi*s_correction
+
+# put the pi values into the results table
+stu_results$Pi <- stu_pi
+
+
+# finding taj D
+
+svar <- variance.d(27, 82)
+
+#Empty vector for Tajima's D values
+stu_results$TajimasD = rep(0, nrow(stu_results))
+
+#filling empty vector
+stu_results$TajimasD <- ((stu_results$Pi - stu_results$Watt_Theta)/sqrt(svar))
+
+# plot results
+plot(stu_results$Start, stu_results$TajimasD, pch=20,xlab="Position", ylab="Tajima's D", type="l", ylim=c(-4,1))
+
+
+```
+
+Questions:
+
+a.I picked the 1:113639554-113680519 region of the human genome. I don't have a specific reason, just tried a bunch of different regions and this one gave me results so I kept with this location. 
+
+b. STU (Sri Lankan Tami in the UK), and I chose this location because I really liked the acronym.  FIX ME 
+
+c. Changing the window size allows for more comparative analysis and changing how we can sample the data in the personal analysis. The example data had one window so our result was just the one row while the new one had many changes and we can subset and examine all of those changes. 
+
+d.This region is a protein coding gene, so depending on what the protein is encoding for, I'd assume very little variation within a population for these samples. But when we take a closer look, the Taj d value are all negative too; meaning an excessive level of common changes. this could be a sign of positive selection happening in this population.
+

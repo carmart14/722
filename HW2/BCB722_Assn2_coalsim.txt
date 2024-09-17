@@ -1,0 +1,267 @@
+### Coalescent Simulator Assignment 2
+### This assignment can be completed in R or in python. This is the python code that will be helpful if you choose this route.
+### Please email your code to the TA as a .txt file since Outlook does not send .py files properly.
+###
+
+import sys
+import numpy as np
+
+# We are going to start by defining a few data structures (as classes) below.
+# This might seem confusing right now but this will make things much cleaner
+# below.
+class Node:
+    def __init__(self, descendants, nodeTime):
+        """class method to create a new Node object.
+
+        Parameters
+        ----------
+        descendants -- a list of numbers corresponding to the individuals that descend from the new Node
+        nodeTime -- the time at which this node existed, expressed in generations ago (should be zero for present-day individuals)
+        """
+        self.descendants = descendants
+        self.nodeTime = nodeTime
+
+class Branch:
+    def __init__(self, descendants, branchLength):
+        """class method to create a new Branch object.
+
+        Parameters
+        ----------
+        descendants -- a list of numbers corresponding to the individuals that descend from the new Branch
+        branchLength -- the length of the branch, expressed in generations
+        """
+        self.descendants = descendants
+        self.branchLength = branchLength
+
+def pickCoalTime(coalProb):
+    """Incomplete function to pick coalescence time
+
+    Parameters
+    ----------
+    coalProb -- the per-generation probability that a coalescence event will occur
+
+    Returns
+    -------
+    coalTime -- the time at which the next coalescent event will occur
+
+    """
+    # Hint: What distribution describes how long we have to wait for an event to
+    # occur, given the probability that the event will occur in a single time-step?
+    # the answer is one of these: https://numpy.org/doc/stable/reference/random/generator.html
+    raise NotImplementedError # remove this once you have finished the function
+    return coalTime
+
+def selectNodeIndicesToCoalesce(nodes):
+    """Incomplete function to pick two node indices to coalesce
+
+    Parameters
+    ----------
+    nodes -- the list of all nodes in the tree
+
+    Returns
+    -------
+    nodeIndex1 -- the index of the first node in the next coalescence event
+    nodeIndex2 -- the index in the second node in the next coalescence event
+
+    """
+    # We need to figure out which two nodes to coalesce
+    raise NotImplementedError # remove this once you have finished the function
+    return nodeIndex1, nodeIndex2
+
+### Tree-generating function will call your two functions above... ###
+# Add your own code where you see triple hash marks "###"
+def generateTree(n, N):
+    """Incomplete function to pick two node indices to coalesce
+
+    Parameters
+    ----------
+    nodes -- the list of all nodes in the tree
+
+    Returns
+    -------
+    nodes -- the list of all nodes that have yet to coalesce (should contain only one node)
+    branches -- the list of all branches in our completed coalescent tree
+
+    """
+
+    # initialize our tree data structure
+    # we only need to keep track of two things for the purposes of this simulation:
+    #    1) for each node in the tree, a list of all individuals in our sample
+    #       that are descendants of the node
+    #    2) the time of this node (for our actual samples this is the present, or 0)
+
+    # initialize our tree nodes to contain our leaves
+    nodes = []
+    for j in range(n):
+        nodes.append(Node(descendants=[j], nodeTime=0))
+
+    # we will also keep track of all branches in the tree which will make it
+    # easier to throw down mutations randomly once we are done building our
+    # coalescent history.
+    branches = []
+
+    # we want to keep track of how far back in time we have gone
+    # we will use this variable to do that
+    currentTimeElapsed = 0
+
+    while len(nodes) >= 2:
+        # calculate coalescence probability, ie. what is the per-generation
+        # probability that there will be any coalescence event among our lineages?
+        coalProb = (i*(i-1))/(4*N) ### note that i needs to be defined here!
+
+        # Here is one of the ingenious things about coalescent simulation:
+        # we don't actually have to simulate each generation, and this is
+        # because the coalescent tells us what the distribution of
+        # coalescence times should be. All we have to do is draw from this
+        # distribution to get a number of generations, then we skip back
+        # to that time and continue our work. This makes the simulations
+        # really fast! We do this below:
+
+        # pick a random number of generations we will have to wait for the
+        # coalescence event to occur
+        coalGen = pickCoalTime(coalProb) ### this function needs to be finished above!
+
+        # pick a random pair of nodes from our tree that we will coalesce
+        nodeIndex1, nodeIndex2 = selectNodeIndicesToCoalesce(nodes)
+        node1, node2 = nodes[nodeIndex1], nodes[nodeIndex2]
+
+        # we just jumped back coalGen generations, so we will add this to our
+        # time counter
+        currentTimeElapsed += coalGen
+
+        # now that node1 and node2 have coalesced in our tree, we remove them from
+        # the set of nodes that have yet to coalesce:
+        nodes.remove(node1)
+        nodes.remove(node2)
+
+        # but now we must replace those nodes with their ancestor's node:
+        nodes.append(Node(descendants=blah, nodeTime=blah)) # replace the blahs here with something useful!
+
+        # in essence we have added two new branches to the tree: one from node1
+        # and one from node2; these two branches connect to each other at
+        # currentTimeElapsed, and their descendents
+        # Note the benefit of using the Node class here: we don't have to remember the internals
+        # of how the Node data structure works. We just need to know that it needs a list of
+        # descendants and a time and our class takes care of the rest. For example, we could have
+        # simply created a list of two elements (the first being itself a list of descendants,
+        # and the second being a number corresponding to the time), but then we would always have
+        # to remember that node[0] has node's descendants and node[1] contains the time. That
+        # code would also be harder read!
+
+        # eventually we will be throwing mutations down onto branches;
+        # to do this we need to keep track of two things:
+        #     1) the length of the branch (in number of generations)
+        #     2) the set of nodes that are a descendant of this branch
+        # the latter will tell us which individuals will harbor any mutation(s)
+        # that will occur on this branch
+        # first, let's get the length of the branch coming from node1:
+        branchLength1 = currentTimeElapsed - node1.nodeTime
+
+        # let's record this length along with all individuals node1 is
+        # ancestral to, which we have been keeping track of all along!
+        branches.append(Branch(descendants=node1.descendants, branchLength=branchLength1))
+        # Once again our use of classes has simplified things for us.
+
+        # do the same thing for the branch leading to node2
+        branchLength2 = currentTimeElapsed - node2.nodeTime
+        branches.append(Branch(descendants=node2.descendants, branchLength=branchLength2))
+    return nodes, branches
+
+def getTotalTreeHeight(???):
+    """Missing function to get the height of our tree
+
+    Parameters
+    ----------
+    ??? -- ???
+
+    Returns
+    -------
+    tmrca -- the time back to the common ancestor of our complete sample
+
+    """
+    # Hint: the time to the most recent common ancestor is simply the age of the final
+    # node that we added to the tree
+    return tmrca
+
+def drawNumberOfMutationsOnBranch(branchLengthInGen, totalMutationRatePerGen):
+    """Missing function to get the number of mutations we want to place on a given branch
+
+    Parameters
+    ----------
+    branchLengthInGen -- The length of the current branch, expressed in generations
+    totalMutationRatePerGen -- The mutation rate per generation across our entire L-base pair locus
+
+    Returns
+    -------
+    numMuts -- the number of mutations
+
+    """
+    # have to pick an appropriately distributed random number of mutations for
+    # this branch.
+    raise NotImplementedError
+    return numMuts
+
+
+def throwDownMutations(branches, mu, L):
+    """Missing function to get the number of mutations we want to place on a given branch
+
+    Parameters
+    ----------
+    branches -- Our tree (represented by a list of branches)
+    mu -- The per-base pair mutation rate
+    L -- the total number of base pairs in our simulated region
+
+    Returns
+    -------
+    numMuts -- the number of mutations
+
+    """
+
+    # First, initialize our matrix to n empty lists
+
+    seqMatrix = []
+    for i in range(n):
+        seqMatrix.append([])
+
+    # Now we are ready to throw down our mutations. There are a few ways that we could
+    # go about it, but the way I have written it below is to iterate through each
+    # branch of the tree, pick an appropriate random number of mutations for that branch
+    # (you have already coded that part), and then for each chromosome in our sample write a 1
+    # if it is a descendant of the branch where the mutation occurred and 0 otherwise.
+    for branch in branches:
+        numMuts = drawNumberOfMutationsOnBranch(branch.branchLength, mu*L)
+        for mut in range(numMuts):
+            for i in range(n):
+                if i in branch.descendants:
+                    seqMatrix[i].append(1)
+                else:
+                    seqMatrix[i].append(0)
+    return seqMatrix
+
+
+# Coalescent Simulation Parameters -- you can mess with these a little if you want
+# but if you make L and N too huge things might get slow. Your results might also 
+# start to act a little weird if you make n very large.
+L = 100000  # Locus length
+N = 1e4  # Population Size
+n = 20  # number of pairs of genes that can coalesce
+mu = 1.2e-8  # per site mutation rate
+
+# Simulate
+nodes, branches = generateTree(n, N)
+tmrca = getTotalTreeHeight(nodes)
+print(tmrca)
+
+seqMatrix = throwDownMutations(branches, mu, L)
+for seq in seqMatrix:
+    print("".join(seq))
+    
+
+
+### Your Analysis here:
+# Site frequency Spectrum
+# Come up with a way to generate the SFS from the simulated seqMatrix we generated above
+#
+# import matplotlib.pyplot as plt
+# plt.hist() is sufficient to make the plot
+# plt.show()
