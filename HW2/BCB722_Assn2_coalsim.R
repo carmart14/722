@@ -12,6 +12,7 @@
 #    2) the time of this node (for our actual samples this is the present, or 0)
 # Thus, each node will have a vector of descendants (i.e. samples, aka leaves in the
 # tree, that are descendants of the node), and a time attribute as well
+
 treeNode <- setClass("treeNode", slots = c(descendants = "numeric", time = "numeric"))
 
 # similarly, we will keep track of the branches and their lengths; this information
@@ -21,26 +22,24 @@ treeNode <- setClass("treeNode", slots = c(descendants = "numeric", time = "nume
 branch <- setClass("branch", slots = c(descendants = "numeric", branchLength = "numeric"))
 
 # Make your own functions here ####
+
 ### Make the following three functions to be used within the coalescent simulator
-pickCoalTime <- function(???){
-  # Hint: What distribution describes the number of generations we have to go back in
-  # time for our next coalescence event to occur 
-  #coalGen <- ???
+pickCoalTime <- function(x, n){
+  coalGen <- rgeom(x, prob = n)
   return(coalGen)
 }
 
 ### this should be a vector containing the two numbers: the indices of the two nodes that we would
 # like to coalesce.
-selectNodeIndicesToCoalesce <- function(???){  
-  # n = number of nodes (gene copies) to coalesce
+selectNodeIndicesToCoalesce <- function(x){  
+  # nodes = number of nodes (gene copies) to coalesce
   #nodesToCoalesce <- ???
   return(nodesToCoalesce)
 }
 
 ### returns the per-generation probability that there will be any coalescence event among our lineages 
-calcCoalProb <- function(???, ???){
-  # two input arguments are required
-  #coalProb <- ???
+calcCoalProb <- function(N, n){
+  coalProb <-  (n(n-1)/4*N)
   return(coalProb)
 }
 
@@ -64,7 +63,7 @@ generateTree <- function(n, N){
   lineageCount = n #keeping track of the number of lineages yet to coalesce
   while (lineageCount >= 2){
     ### calculate coalescence probability:
-    coalProb <- calcCoalProb(???,???) ### Add arguments to call your own function here
+    coalProb <- calcCoalProb(N,n) ### Add arguments to call your own function here
     
     # here is one of the ingenious things about coalescent simulation:
     # we don't actually have to simulate each generation, and this is
